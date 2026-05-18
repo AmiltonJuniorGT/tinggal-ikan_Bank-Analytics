@@ -1,6 +1,13 @@
-# GT • Itaú Tarifas — App Integrado v1
+# GT • Itaú Tarifas — App Integrado v2
 
-Unifica importação, padronização, preview e dashboard analítico em um único app.
+Aplicação única para:
+
+- importar extrato Itaú XLSX/CSV
+- padronizar base
+- preview de base bruta
+- selecionar denominações
+- gerar dashboard analítico
+- exportar XLSX
 
 Arquivos:
 - index.html
