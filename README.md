@@ -1,15 +1,13 @@
-# GT • Itaú Tarifas — App Integrado v2
+# GT Bank Analytics — v3 Fluxo Financeiro
 
-Aplicação única para:
+Novidades:
+- Nova aba no menu lateral: Fluxo Financeiro
+- Gráfico Entradas x Saídas x Resultado
+- Top saídas por denominação
+- Novas despesas detectadas
+- Despesas acima da média histórica
 
-- importar extrato Itaú XLSX/CSV
-- padronizar base
-- preview de base bruta
-- selecionar denominações
-- gerar dashboard analítico
-- exportar XLSX
-
-Arquivos:
+Substitua:
 - index.html
 - styles.css
 - app.js

@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>GT • Bank Analytics</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brandLogo">GT</div>
+        <div>
+          <strong>Bank Analytics</strong>
+          <span>App Integrado</span>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="navItem active" data-view="importView">Importação</button>
+        <button class="navItem" data-view="rawView">Base Bruta</button>
+        <button class="navItem" data-view="analysisView">Dashboard</button>
+        <button class="navItem" data-view="flowView">Fluxo Financeiro</button>
+      </nav>
+
+      <div class="sidebarFoot">
+        <span>Status</span>
+        <strong id="miniStatus">Aguardando arquivo</strong>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h1>GT • Bank Analytics</h1>
+          <p>Importar, padronizar, selecionar movimentos e analisar comportamento financeiro.</p>
+        </div>
+        <button class="btn ghost" id="btnExport" disabled>Exportar XLSX</button>
+      </header>
+
+      <section class="statusCard" id="statusBox">
+        <strong>Status:</strong> <span id="status">Aguardando arquivo...</span>
+      </section>
+
+      <section id="importView" class="view active">
+        <div class="card">
+          <div class="dropzone" id="dropzone">
+            <h2>1. Importar extrato Itaú</h2>
+            <p>Arraste o arquivo aqui ou selecione um XLSX/CSV exportado do banco.</p>
+            <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+            <div class="actions">
+              <button class="btn" id="btnProcess" type="button">Processar e padronizar</button>
+              <button class="btn ghost" id="btnReset" type="button">Limpar</button>
+            </div>
+            <div class="fileName" id="fileName">Nenhum arquivo selecionado</div>
+          </div>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi"><span>Linhas RAW</span><strong id="kRaw">0</strong></div>
+          <div class="kpi"><span>Denominações</span><strong id="kDenom">0</strong></div>
+          <div class="kpi"><span>Meses</span><strong id="kMonths">0</strong></div>
+          <div class="kpi"><span>Total selecionado</span><strong id="kTotal">R$ 0,00</strong></div>
+        </div>
+
+        <div class="card">
+          <div class="cardHead">
+            <div>
+              <h2>2. Selecionar lançamentos para análise</h2>
+              <p>Marque o que deve entrar no Dashboard de custos/tarifas. O Fluxo Financeiro usa entradas e saídas da base completa.</p>
+            </div>
+            <span id="selectionInfo">—</span>
+          </div>
+
+          <div class="selectorTools">
+            <input id="searchDenom" type="search" placeholder="Buscar lançamento/denominação...">
+            <button class="btn" id="btnSuggest" type="button">Sugerir tarifas</button>
+            <button class="btn ghost" id="btnAll" type="button">Marcar todas</button>
+            <button class="btn ghost" id="btnNone" type="button">Desmarcar todas</button>
+            <button class="btn" id="btnApply" type="button">Aplicar seleção</button>
+          </div>
+
+          <div class="denomList" id="denomList">
+            <div class="empty">Processe um arquivo para listar os lançamentos agrupados.</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="rawView" class="view">
+        <div class="grid2">
+          <div class="card">
+            <div class="cardHead"><h2>BASE_PADRONIZADA</h2><span>preview</span></div>
+            <div class="tableWrap" id="rawTable"></div>
+          </div>
+          <div class="card">
+            <div class="cardHead"><h2>BASE_SELECIONADA</h2><span>preview</span></div>
+            <div class="tableWrap" id="selectedTable"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="analysisView" class="view">
+        <div class="card filters">
+          <div class="cardHead">
+            <h2>Dashboard de Custos/Tarifas</h2>
+            <span id="analysisInfo">—</span>
+          </div>
+
+          <div class="filterGrid">
+            <div class="field"><label>Data inicial</label><input id="startDate" type="date"></div>
+            <div class="field"><label>Data final</label><input id="endDate" type="date"></div>
+            <div class="field"><label>Buscar denominação</label><input id="analysisSearch" type="search" placeholder="Ex.: IOF, JUROS, TAR..."></div>
+            <div class="field">
+              <label>Acima da curva</label>
+              <input id="threshold" type="range" min="1.05" max="1.60" step="0.01" value="1.20">
+              <small><span id="thresholdLabel">1.20×</span> da mediana 3m</small>
+            </div>
+          </div>
+
+          <div class="actions left">
+            <button class="btn" id="btnUpdateAnalysis" type="button">Atualizar análise</button>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <div class="cardHead"><h2>Total mensal selecionado</h2><span id="totalPill">—</span></div>
+            <canvas id="chartTotal" height="130"></canvas>
+          </div>
+          <div class="card">
+            <div class="cardHead"><h2>Top denominações</h2><span>ranking</span></div>
+            <canvas id="chartTop" height="130"></canvas>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <div class="cardHead"><h2>Meses acima da curva</h2><span>mediana 3m</span></div>
+            <div class="tableWrap small" id="outlierTable"></div>
+          </div>
+          <div class="card">
+            <div class="cardHead"><h2>Ranking de despesas selecionadas</h2><span>por total</span></div>
+            <div class="tableWrap small" id="rankingTable"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="flowView" class="view">
+        <div class="card filters">
+          <div class="cardHead">
+            <div>
+              <h2>Fluxo Financeiro e Alertas</h2>
+              <p>Compara entradas, saídas, resultado líquido e identifica despesas novas ou fora da média.</p>
+            </div>
+            <span id="flowInfo">—</span>
+          </div>
+
+          <div class="filterGrid">
+            <div class="field"><label>Data inicial</label><input id="flowStartDate" type="date"></div>
+            <div class="field"><label>Data final</label><input id="flowEndDate" type="date"></div>
+            <div class="field"><label>Buscar denominação</label><input id="flowSearch" type="search" placeholder="Ex.: boleto, tarifa, fornecedor..."></div>
+            <div class="field">
+              <label>Desvio acima da média</label>
+              <input id="flowFactor" type="range" min="1.10" max="2.50" step="0.05" value="1.30">
+              <small><span id="flowFactorLabel">1.30×</span> da média histórica</small>
+            </div>
+          </div>
+
+          <div class="actions left">
+            <button class="btn" id="btnUpdateFlow" type="button">Atualizar fluxo</button>
+          </div>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi"><span>Entradas</span><strong id="kEntradas">R$ 0,00</strong></div>
+          <div class="kpi"><span>Saídas</span><strong id="kSaidas">R$ 0,00</strong></div>
+          <div class="kpi"><span>Resultado</span><strong id="kResultado">R$ 0,00</strong></div>
+          <div class="kpi"><span>Alertas</span><strong id="kAlertas">0</strong></div>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <div class="cardHead"><h2>Entradas x Saídas x Resultado</h2><span>mensal</span></div>
+            <canvas id="chartFlow" height="130"></canvas>
+          </div>
+          <div class="card">
+            <div class="cardHead"><h2>Top saídas por denominação</h2><span>base completa</span></div>
+            <canvas id="chartOutTop" height="130"></canvas>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <div class="cardHead"><h2>Novas despesas detectadas</h2><span>primeira ocorrência no período</span></div>
+            <div class="tableWrap small" id="newExpensesTable"></div>
+          </div>
+          <div class="card">
+            <div class="cardHead"><h2>Despesas acima da média</h2><span>comportamento diferente</span></div>
+            <div class="tableWrap small" id="abnormalExpensesTable"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="./app.js"></script>
+</body>
+</html>
